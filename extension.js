@@ -77,7 +77,7 @@ const BatteryMenuToggle = GObject.registerClass(
             super._init({
                 title: 'Battery',
                 iconName: ICON_NAME,
-                toggleMode: true,
+                toggleMode: false,
             });
 
             // Compatible with GNOME 43+
