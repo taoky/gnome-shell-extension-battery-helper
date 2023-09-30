@@ -1,0 +1,7 @@
+[Desktop Entry]
+# Copy this file to ~/.local/share/applications/
+Name=Powertop
+Exec=pkexec powertop
+Type=Application
+Terminal=true
+NoDisplay=true
