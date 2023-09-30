@@ -4,6 +4,8 @@
 
 ![Screenshot2](assets/screenshot2.png)
 
+Currently GNOME 44 only. Will be ported to GNOME 45 when Arch releases GNOME 45.1 (probably).
+
 ## Requirements
 
 1. `gtk-launch`, `tlp` and `powertop` available.
