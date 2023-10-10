@@ -16,14 +16,15 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-/* exported init */
 
-const {GObject, Gio, GLib} = imports.gi;
+import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
+import GObject from 'gi://GObject';
+import {Extension, gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
-const Main = imports.ui.main;
-
-const PopupMenu = imports.ui.popupMenu;
-const QuickSettings = imports.ui.quickSettings;
+import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import * as QuickSettings from 'resource:///org/gnome/shell/ui/quickSettings.js';
 
 const QuickSettingsMenu = Main.panel.statusArea.quickSettings;
 
@@ -130,39 +131,21 @@ const BatteryMenuToggle = GObject.registerClass(
 
 const BatteryMenuIndicator = GObject.registerClass(
     class BatteryMenuIndicator extends QuickSettings.SystemIndicator {
-        _init() {
-            super._init();
-
-            this.quickSettingsItems.push(new BatteryMenuToggle());
-
-            this.connect('destroy', () => {
-                this.quickSettingsItems.forEach(item => item.destroy());
-            });
-
-            QuickSettingsMenu._indicators.add_child(this);
-            QuickSettingsMenu._addItems(this.quickSettingsItems);
-
-            // Ensure it above background apps
-            for (const item of this.quickSettingsItems) {
-                QuickSettingsMenu.menu._grid.set_child_below_sibling(item,
-                    QuickSettingsMenu._backgroundApps.quickSettingsItems[0]);
-            }
-        }
     }
 );
 
 
-class Extension {
+export default class BatteryExtension extends Extension {
     enable() {
         this._indicator = new BatteryMenuIndicator();
+        this._indicator.quickSettingsItems.push(new BatteryMenuToggle(this));
+
+        QuickSettingsMenu.addExternalIndicator(this._indicator);
     }
 
     disable() {
+        this._indicator.quickSettingsItems.forEach(item => item.destroy());
         this._indicator.destroy();
         this._indicator = null;
     }
-}
-
-function init() {
-    return new Extension();
 }
