@@ -4,6 +4,8 @@
 
 ![Screenshot2](assets/screenshot2.png)
 
+![Screenshot3](assets/screenshot3.png)
+
 Currently supports GNOME 45.
 
 ## Requirements
