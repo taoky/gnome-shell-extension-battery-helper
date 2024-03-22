@@ -33,21 +33,24 @@ function logErrorAndNotify(msg) {
     Main.notifyError(`Battery Helper failed: ${msg}`);
 }
 
-function runProgramWithNotify(cmd, comment) {
+function runProgramWithNotify(cmd, comment, notifyWhenSuccess = false) {
     let res = GLib.shell_parse_argv(cmd);
     let success = res[0];
     let argv = res[1];
     if (!success) {
-        logErrorAndNotify(`Glib.shell_parse_argv cannot parse cmd: ${cmd}`);
+        logErrorAndNotify(`${cmd} cannot be parsed by Glib.shell_parse_argv`);
     } else {
         try {
             let proc = Gio.Subprocess.new(argv, Gio.SubprocessFlags.NONE);
             proc.wait_check_async(null, (_proc, result) => {
                 try {
-                    if (_proc.wait_check_finish(result))
+                    if (_proc.wait_check_finish(result)) {
                         log(`${comment} successfully executed`);
-                    else
-                        logErrorAndNotify(`the process to execute the ${comment} failed`);
+                        if (notifyWhenSuccess)
+                            Main.notify(`${comment} executed successfully`);
+                    } else {
+                        logErrorAndNotify(`${comment} failed`);
+                    }
                 } catch (e) {
                     logErrorAndNotify(e);
                 }
@@ -58,17 +61,34 @@ function runProgramWithNotify(cmd, comment) {
     }
 }
 
-function getBatteryPower() {
-    const file = Gio.File.new_for_path('/sys/class/power_supply/BAT0/power_now');
+function readUTF8File(path) {
+    const file = Gio.File.new_for_path(path);
     const [success, contents] = file.load_contents(null);
     if (!success || !contents.length)
         throw new Error('Unsuccessful file load contents');
 
     const decoder = new TextDecoder('utf-8');
-    const contentsString = decoder.decode(contents);
+    return decoder.decode(contents);
+}
+
+function getBatteryPower() {
+    const contentsString = readUTF8File('/sys/class/power_supply/BAT0/power_now');
     const number = parseInt(contentsString);
 
     return number / 1000000;
+}
+
+function isPerformanceCPUOnline() {
+    // CPU0 is always online
+    // CPU1-7 are performance CPUs
+    // CPU8-15 are efficiency CPUs
+    for (let i = 1; i < 8; i++) {
+        const path = `/sys/devices/system/cpu/cpu${i}/online`;
+        const res = readUTF8File(path)[0];
+        if (res === '0')
+            return false;
+    }
+    return true;
 }
 
 const BatteryMenuToggle = GObject.registerClass(
@@ -96,6 +116,24 @@ const BatteryMenuToggle = GObject.registerClass(
             this._menuItem.currentPower = new PopupMenu.PopupMenuItem('Current Battery Power: ?', {});
             this._itemsSection.addMenuItem(this._menuItem.currentPower);
 
+            this._menuItem.pcputoggle = new PopupMenu.PopupMenuItem('(Getting CPU1-7 status)', {});
+            this._itemsSection.addMenuItem(this._menuItem.pcputoggle);
+            const PCPUDISABLE = 'Disable Performance CPUs';
+            const PCPUENABLE = 'Enable Performance CPUs';
+            this._menuItem.pcputoggle.connect('activate', (item, _event) => {
+                let text = '';
+                if (item.label.text === PCPUDISABLE) {
+                    text = 'disable';
+                } else if (item.label.text === PCPUENABLE) {
+                    text = 'enable';
+                } else {
+                    logErrorAndNotify('Unknown label text for pcputoggle item');
+                    return;
+                }
+
+                runProgramWithNotify(`sudo pcpuonline.sh ${text}`, `pcpuonline.sh ${text}`, true);
+            });
+
             this.menu.connect('open-state-changed', async (menu, open) => {
                 if (open) {
                     let currentPower;
@@ -107,6 +145,24 @@ const BatteryMenuToggle = GObject.registerClass(
                         currentPower = 'unknown';
                     }
                     this._menuItem.currentPower.label.text = `Current Battery Power: ${currentPower}`;
+
+                    let performanceCPUOnline;
+                    try {
+                        performanceCPUOnline = isPerformanceCPUOnline();
+                    } catch (e) {
+                        logError(e);
+                        performanceCPUOnline = null;
+                    }
+
+                    if (performanceCPUOnline !== null) {
+                        if (performanceCPUOnline)
+                            this._menuItem.pcputoggle.label.text = PCPUDISABLE;
+                        else
+                            this._menuItem.pcputoggle.label.text = PCPUENABLE;
+                        this._menuItem.pcputoggle.sensitive = true;
+                    } else {
+                        this._menuItem.pcputoggle.sensitive = false;
+                    }
                 }
             });
 
@@ -118,10 +174,10 @@ const BatteryMenuToggle = GObject.registerClass(
             this._menuItem.tlpBatteryCare.icon.icon_name = 'battery-full-charged-symbolic';
             this._itemsSection.addMenuItem(this._menuItem.tlpBatteryCare);
             this._menuItem.tlpBatteryCare.menu.addAction('Force fullcharge until reboot', () => {
-                runProgramWithNotify('sudo tlp fullcharge', 'tlp fullcharge');
+                runProgramWithNotify('sudo tlp fullcharge', 'tlp fullcharge', true);
             });
             this._menuItem.tlpBatteryCare.menu.addAction('Restore to default', () => {
-                runProgramWithNotify('sudo tlp setcharge', 'tlp setcharge');
+                runProgramWithNotify('sudo tlp setcharge', 'tlp setcharge', true);
             });
 
             this.menu.addMenuItem(this._itemsSection);
