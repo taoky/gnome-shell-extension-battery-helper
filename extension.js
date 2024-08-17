@@ -27,10 +27,11 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import * as QuickSettings from 'resource:///org/gnome/shell/ui/quickSettings.js';
 
 const QuickSettingsMenu = Main.panel.statusArea.quickSettings;
+const notifyTitle = "Battery Helper";
 
 function logErrorAndNotify(msg) {
     logError(msg);
-    Main.notifyError(`Battery Helper failed: ${msg}`);
+    Main.notifyError(notifyTitle, `Battery Helper failed: ${msg}`);
 }
 
 function runProgramWithNotify(cmd, comment, notifyWhenSuccess = false) {
@@ -47,7 +48,7 @@ function runProgramWithNotify(cmd, comment, notifyWhenSuccess = false) {
                     if (_proc.wait_check_finish(result)) {
                         log(`${comment} successfully executed`);
                         if (notifyWhenSuccess)
-                            Main.notify(`${comment} executed successfully`);
+                            Main.notify(notifyTitle, `${comment} executed successfully`);
                     } else {
                         logErrorAndNotify(`${comment} failed`);
                     }
