@@ -132,7 +132,7 @@ const BatteryMenuToggle = GObject.registerClass(
                     return;
                 }
 
-                runProgramWithNotify(`sudo pcpuonline.sh ${text}`, `pcpuonline.sh ${text}`, true);
+                runProgramWithNotify(`pkexec pcpuonline.sh ${text}`, `pcpuonline.sh ${text}`, true);
             });
 
             this.menu.connect('open-state-changed', async (menu, open) => {
@@ -175,10 +175,10 @@ const BatteryMenuToggle = GObject.registerClass(
             this._menuItem.tlpBatteryCare.icon.icon_name = 'battery-full-charged-symbolic';
             this._itemsSection.addMenuItem(this._menuItem.tlpBatteryCare);
             this._menuItem.tlpBatteryCare.menu.addAction('Force fullcharge until reboot', () => {
-                runProgramWithNotify('sudo tlp fullcharge', 'tlp fullcharge', true);
+                runProgramWithNotify('pkexec tlp fullcharge', 'tlp fullcharge', true);
             });
             this._menuItem.tlpBatteryCare.menu.addAction('Restore to default', () => {
-                runProgramWithNotify('sudo tlp setcharge', 'tlp setcharge', true);
+                runProgramWithNotify('pkexec tlp setcharge', 'tlp setcharge', true);
             });
 
             this.menu.addMenuItem(this._itemsSection);
