@@ -3,7 +3,7 @@
   "description": "A Quick Setting for some functions about battery, intended to work with tlp.",
   "uuid": "battery@taoky.moe",
   "shell-version": [
-    "45", "46", "47"
+    "45", "46", "47", "48"
   ],
   "version": "0.0.2"
 }
